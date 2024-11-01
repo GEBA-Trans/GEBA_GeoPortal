@@ -3,7 +3,7 @@ import { initializeZoomPan, setupZoomControls, setupPanning } from './zoomPan.js
 import { setupPostalCodeClicks, loadSelectedPostalCodes, setMode, togglePostalCode } from './postalCodeManager.js';
 import { setupModeToggle, setupLookupButton } from './uiSetup.js';
 import { connectWebSocket } from './websocket.js';
-import { setupLassoSelect } from './lasso.js';
+import { setupLassoSelect, setupBoxSelect } from './lasso.js';
 
 async function loadRegionOptions() {
     try {
@@ -85,6 +85,7 @@ function initializeApp() {
             setupZoomControls();
             setupPanning();
             setupLassoSelect(svgElement, togglePostalCode);
+            setupBoxSelect(svgElement, togglePostalCode);
             setupModeToggle();
             setupLookupButton();
             setMode('loading');

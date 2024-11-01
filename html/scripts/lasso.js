@@ -262,3 +262,88 @@ function addToSelection(path, postalCode) {
         addPostalCodeCallback(path, postalCode, currentMode, true); // Add 'true' to indicate it's from lasso
     }
 }
+
+export let isBoxSelectActive = false;
+let boxStartPoint;
+let boxEndPoint;
+
+export function setupBoxSelect(svg, addPostalCodeFunc) {
+    svgElement = svg;
+    addPostalCodeCallback = addPostalCodeFunc;
+    const boxSelectButton = document.getElementById('box-select-button');
+    boxSelectButton.addEventListener('click', toggleBoxSelect);
+
+    svgElement.addEventListener('mousedown', startBoxSelect);
+    svgElement.addEventListener('mousemove', updateBoxSelect);
+    document.addEventListener('mouseup', endBoxSelect);
+}
+
+function toggleBoxSelect() {
+    isBoxSelectActive = !isBoxSelectActive;
+    console.log('Box Select Active:', isBoxSelectActive); // Debugging line
+    svgElement.classList.toggle('box-select-active', isBoxSelectActive);
+    const boxSelectButton = document.getElementById('box-select-button');
+    boxSelectButton.title = isBoxSelectActive ? 'Cancel Box Select' : 'Box Select';
+}
+
+function startBoxSelect(e) {
+    if (!isBoxSelectActive) return;
+    e.preventDefault();
+    boxStartPoint = getSVGPoint(e.clientX, e.clientY);
+    boxEndPoint = boxStartPoint;
+    drawBoxSelect();
+}
+
+function updateBoxSelect(e) {
+    if (!isBoxSelectActive || !boxStartPoint) return;
+    e.preventDefault();
+    boxEndPoint = getSVGPoint(e.clientX, e.clientY);
+    drawBoxSelect();
+}
+
+function endBoxSelect(e) {
+    if (!isBoxSelectActive || !boxStartPoint) return;
+    e.preventDefault();
+    boxEndPoint = getSVGPoint(e.clientX, e.clientY);
+    selectPathsInBox();
+    clearBoxSelect();
+}
+
+function drawBoxSelect() {
+    clearBoxSelect();
+    const box = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const x = Math.min(boxStartPoint.x, boxEndPoint.x);
+    const y = Math.min(boxStartPoint.y, boxEndPoint.y);
+    const width = Math.abs(boxStartPoint.x - boxEndPoint.x);
+    const height = Math.abs(boxStartPoint.y - boxEndPoint.y);
+    box.setAttribute('x', x);
+    box.setAttribute('y', y);
+    box.setAttribute('width', width);
+    box.setAttribute('height', height);
+    box.setAttribute('fill', 'rgba(0, 0, 255, 0.3)'); // Blue fill with 30% opacity
+    box.setAttribute('stroke', 'blue'); // Blue stroke
+    box.setAttribute('stroke-width', '2');
+    svgElement.appendChild(box);
+}
+
+function clearBoxSelect() {
+    const existingBox = svgElement.querySelector('rect');
+    if (existingBox) existingBox.remove();
+}
+
+function selectPathsInBox() {
+    const paths = document.querySelectorAll('#map-container svg path');
+    paths.forEach(path => {
+        const pathBBox = path.getBBox();
+        const isInBox = boxStartPoint.x < pathBBox.x + pathBBox.width &&
+                        boxStartPoint.x + Math.abs(boxStartPoint.x - boxEndPoint.x) > pathBBox.x &&
+                        boxStartPoint.y < pathBBox.y + pathBBox.height &&
+                        boxStartPoint.y + Math.abs(boxStartPoint.y - boxEndPoint.y) > pathBBox.y;
+
+        if (isInBox) {
+            const postalCode = path.id || 'Unknown';
+            addToSelection(path, postalCode);
+            path.classList.add('selected');
+        }
+    });
+}
